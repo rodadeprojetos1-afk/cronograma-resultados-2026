@@ -42,7 +42,7 @@ function render(){
   document.getElementById('app').innerHTML=`
     <header class="topbar"><div class="brand"><span class="brand-mark">↗</span><div><strong>RESULTADOS</strong><small>EDITAIS 2026</small></div></div><div class="top-actions"><button class="install-btn" id="installBtn">Instalar APP</button><button class="icon-btn" id="notifyBtn" aria-label="Ativar notificações">${icon('calendar')}</button></div></header>
     <main class="shell">
-      <section class="hero"><div class="eyebrow">PAINEL DE ACOMPANHAMENTO</div><h1>Seus próximos<br><em>resultados.</em></h1><p>Uma visão clara de cada edital, data e participante em um só lugar.</p><button class="install-hero" id="installHero">Instalar no celular</button><div class="next-callout"><div><span class="mini-label">PRÓXIMO RESULTADO</span><strong>${next.title}</strong><span>${formatDate(next)} · ${next.count} participante${next.count>1?'s':''}</span></div><div class="days"><b>${Math.max(0,daysUntil(next))}</b><span>dias</span></div></div></section>
+      <section class="hero"><div class="eyebrow">PAINEL DE ACOMPANHAMENTO</div><div class="next-callout"><div><span class="mini-label">PRÓXIMO RESULTADO</span><strong>${next.title}</strong><span>${formatDate(next)} · ${next.count} participante${next.count>1?'s':''}</span></div><div class="days"><b>${Math.max(0,daysUntil(next))}</b><span>dias</span></div></div></section>
       <section class="stats"><div><b>${editais.length}</b><span>editais</span></div><div><b>${editais.filter(x=>status(x)!=='past').length}</b><span>em aberto</span></div><div><b>${moneyTotal()}</b><span>em disputa</span></div></section>
       <section class="toolbar"><div class="searchbox">${icon('search')}<input id="search" placeholder="Buscar edital ou participante" value="${search}" /></div><div class="filters"><button class="filter ${activeFilter==='upcoming'?'active':''}" data-filter="upcoming">A acompanhar <small>${editais.filter(x=>status(x)!=='past').length}</small></button><button class="filter ${activeFilter==='soon'?'active':''}" data-filter="soon">Próximos <small>${editais.filter(x=>status(x)==='soon').length}</small></button><button class="filter ${activeFilter==='later'?'active':''}" data-filter="later">Depois <small>${editais.filter(x=>status(x)==='later').length}</small></button><button class="filter ${activeFilter==='past'?'active':''}" data-filter="past">Encerrados <small>${editais.filter(x=>status(x)==='past').length}</small></button><button class="filter star-filter ${activeFilter==='favorites'?'active':''}" data-filter="favorites">${icon('star')} Salvos</button></div></section>
       <section class="schedule-head"><div><span class="eyebrow">CRONOGRAMA</span><h2>${activeFilter==='past'?'Resultados encerrados':'Resultados a acompanhar'}</h2></div><span class="result-count">${filtered.length} exibido${filtered.length!==1?'s':''}</span></section>
@@ -101,6 +101,43 @@ function bind(){
   const install=async()=>{if(!deferredInstallPrompt){toast('Use o menu do navegador: Instalar app ou Adicionar à Tela de Início');return} deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null;};
   document.getElementById('installBtn')?.addEventListener('click',install);
   document.getElementById('installHero')?.addEventListener('click',install);
+  scheduleLocalReminders();
+}
+let approvedYear='all';
+let approvedQuery='';
+const approvedOpen=new Set();
+
+function approvedCard(item,index){
+  const key=`${item.year}-${index}`, open=approvedOpen.has(key);
+  return `<article class="approved-card ${open?'open':''}"><div class="approved-card-head"><div><span class="approved-year">${item.year}</span><h3>${item.name}</h3><p>${item.edital}</p></div><button class="approved-toggle" data-approved-open="${key}">${open?'ocultar':'ver detalhes'} ${open?'↑':'↓'}</button></div>${open?`<div class="approved-detail"><span>CATEGORIA E VALOR DA PREMIAÇÃO</span><strong>${item.award}</strong></div>`:''}</article>`;
+}
+
+function renderApproved(){
+  const panel=document.getElementById('approvedPanel'); if(!panel)return;
+  const q=approvedQuery.toLowerCase();
+  const filtered=approvedData.filter(item=>(approvedYear==='all'||String(item.year)===approvedYear)&&(!q||`${item.name} ${item.edital} ${item.award}`.toLowerCase().includes(q)));
+  panel.innerHTML=`<div class="approved-wrap"><div class="approved-intro"><span class="eyebrow">HISTÓRICO DE RESULTADOS</span><h2>Proponentes aprovados</h2><p>Consulte os aprovados por ano, edital, categoria e valor.</p></div><div class="approved-tools"><div class="searchbox">${icon('search')}<input id="approvedSearch" placeholder="Buscar aprovado ou edital" value="${approvedQuery}" /></div><div class="approved-filters"><button class="filter ${approvedYear==='all'?'active':''}" data-approved-year="all">Todos <small>${approvedData.length}</small></button><button class="filter ${approvedYear==='2025'?'active':''}" data-approved-year="2025">2025 <small>${approvedData.filter(x=>x.year===2025).length}</small></button><button class="filter ${approvedYear==='2026'?'active':''}" data-approved-year="2026">2026 <small>${approvedData.filter(x=>x.year===2026).length}</small></button></div></div><div class="approved-count">${filtered.length} aprovado${filtered.length!==1?'s':''}</div><div class="approved-list">${filtered.length?filtered.map((x,i)=>approvedCard(x,i)).join(''):`<div class="empty"><span>⌕</span><strong>Nenhum aprovado encontrado</strong><p>Tente buscar por outro nome ou edital.</p></div>`}</div></div>`;
+  panel.querySelectorAll('[data-approved-year]').forEach(button=>button.onclick=()=>{approvedYear=button.dataset.approvedYear;approvedOpen.clear();renderApproved();bindApproved()});
+  panel.querySelectorAll('[data-approved-open]').forEach(button=>button.onclick=()=>{const key=button.dataset.approvedOpen;approvedOpen.has(key)?approvedOpen.delete(key):approvedOpen.add(key);renderApproved();bindApproved()});
+  const searchInput=panel.querySelector('#approvedSearch'); searchInput?.addEventListener('input',event=>{approvedQuery=event.target.value;renderApproved();bindApproved();const next=panel.querySelector('#approvedSearch');next.focus();next.setSelectionRange(approvedQuery.length,approvedQuery.length)});
+}
+
+function bindApproved(){ document.querySelectorAll('[data-approved-year],[data-approved-open]').forEach(()=>{}); }
+
+function bind(){
+  document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;render()});
+  const input=document.getElementById('search'); input?.addEventListener('input',e=>{search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(search.length,search.length)});
+  document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const t=b.dataset.save;favorites.has(t)?favorites.delete(t):favorites.add(t);localStorage.setItem('resultados-favoritos',JSON.stringify([...favorites]));render()});
+  document.querySelectorAll('[data-expand]').forEach(b=>b.onclick=()=>{const t=b.dataset.expand;expanded.has(t)?expanded.delete(t):expanded.add(t);render()});
+  document.getElementById('savedNav')?.addEventListener('click',()=>{activeFilter='favorites';render()});
+  document.getElementById('notifyBtn')?.addEventListener('click',enableNotifications);
+  const install=async()=>{if(!deferredInstallPrompt){toast('Use o menu do navegador: Instalar app ou Adicionar à Tela de Início');return} deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null;};
+  document.getElementById('installBtn')?.addEventListener('click',install);
+  const shell=document.querySelector('.shell');
+  if(shell&&!document.getElementById('viewTabs')) shell.insertAdjacentHTML('beforebegin',`<div class="view-tabs" id="viewTabs"><button class="view-tab active" id="scheduleTab">Cronograma</button><button class="view-tab" id="approvedTab">Aprovados <small>${approvedData.length}</small></button></div><section class="approved-panel" id="approvedPanel" hidden></section>`);
+  const scheduleTab=document.getElementById('scheduleTab'), approvedTab=document.getElementById('approvedTab'), approvedPanel=document.getElementById('approvedPanel');
+  scheduleTab?.addEventListener('click',()=>{shell.hidden=false;approvedPanel.hidden=true;scheduleTab.classList.add('active');approvedTab.classList.remove('active')});
+  approvedTab?.addEventListener('click',()=>{shell.hidden=true;approvedPanel.hidden=false;scheduleTab.classList.remove('active');approvedTab.classList.add('active');renderApproved()});
   scheduleLocalReminders();
 }
 render();
