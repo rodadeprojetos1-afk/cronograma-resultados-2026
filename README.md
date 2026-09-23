@@ -11,6 +11,9 @@ Protótipo web responsivo criado a partir do PDF `CRONOGRAMA DE RESULTADOS ATUAL
 - cartões com data, condições, pasta/site e participantes de referência;
 - favoritos persistidos no navegador com `localStorage`;
 - navegação inferior no celular.
+- instalação como PWA em navegadores compatíveis;
+- service worker com cache offline e permissão de notificações;
+- lembretes locais enquanto o app estiver aberto.
 
 ## Como abrir
 
@@ -25,3 +28,7 @@ Depois acesse `http://127.0.0.1:4173/`.
 ## Próxima etapa recomendada
 
 Mover os dados de `app.js` para uma planilha/API única, para que novas datas, participantes e valores possam ser atualizados sem editar a interface.
+
+## Notificações push
+
+O GitHub Pages hospeda apenas arquivos estáticos. Para enviar uma notificação mesmo quando o aplicativo estiver fechado, ainda é necessário conectar um serviço de Web Push com backend/scheduler, como Firebase Cloud Messaging, OneSignal ou um Worker com Web Push/VAPID. A instalação PWA, o service worker e a solicitação de permissão já estão preparados para essa próxima etapa.

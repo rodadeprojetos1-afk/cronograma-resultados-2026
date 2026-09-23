@@ -40,7 +40,7 @@ function render(){
   }).sort((a,b)=>dateObj(a)-dateObj(b));
   const next=editais.filter(x=>status(x)!=='past').sort((a,b)=>dateObj(a)-dateObj(b))[0];
   document.getElementById('app').innerHTML=`
-    <header class="topbar"><div class="brand"><span class="brand-mark">↗</span><div><strong>RESULTADOS</strong><small>EDITAIS 2026</small></div></div><button class="icon-btn" id="notifyBtn" aria-label="Ativar notificações">${icon('calendar')}</button></header>
+    <header class="topbar"><div class="brand"><span class="brand-mark">↗</span><div><strong>RESULTADOS</strong><small>EDITAIS 2026</small></div></div><div class="top-actions"><button class="install-btn" id="installBtn">Instalar APP</button><button class="icon-btn" id="notifyBtn" aria-label="Ativar notificações">${icon('calendar')}</button></div></header>
     <main class="shell">
       <section class="hero"><div class="eyebrow">PAINEL DE ACOMPANHAMENTO</div><h1>Seus próximos<br><em>resultados.</em></h1><p>Uma visão clara de cada edital, data e participante em um só lugar.</p><div class="next-callout"><div><span class="mini-label">PRÓXIMO RESULTADO</span><strong>${next.title}</strong><span>${formatDate(next)} · ${next.count} participante${next.count>1?'s':''}</span></div><div class="days"><b>${Math.max(0,daysUntil(next))}</b><span>dias</span></div></div></section>
       <section class="stats"><div><b>${editais.length}</b><span>editais</span></div><div><b>${editais.filter(x=>status(x)!=='past').length}</b><span>em aberto</span></div><div><b>${moneyTotal()}</b><span>em disputa</span></div></section>
@@ -57,6 +57,30 @@ function card(item){ const s=status(item), isFav=favorites.has(item.title); cons
 function bind(){ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{activeFilter=b.dataset.filter;render()}); const input=document.getElementById('search'); input?.addEventListener('input',e=>{search=e.target.value;render();const el=document.getElementById('search');el.focus();el.setSelectionRange(search.length,search.length)}); document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const t=b.dataset.save; favorites.has(t)?favorites.delete(t):favorites.add(t);localStorage.setItem('resultados-favoritos',JSON.stringify([...favorites]));toast(favorites.has(t)?'Edital salvo para acompanhar':'Edital removido dos salvos');render()}); document.getElementById('savedNav')?.addEventListener('click',()=>{activeFilter='favorites';render()}); document.getElementById('notifyBtn')?.addEventListener('click',()=>toast('Lembretes serão adicionados na próxima etapa')); }
 function toast(msg){const t=document.getElementById('toast'); if(!t)return; t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
 const expanded = new Set();
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredInstallPrompt = event; const button=document.getElementById('installBtn'); if(button) button.hidden=false; });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const button=document.getElementById('installBtn'); if(button) button.hidden=true; });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+
+function scheduleLocalReminders(){
+  if (Notification.permission !== 'granted') return;
+  const now = Date.now();
+  editais.filter(item => status(item) !== 'past').forEach(item => {
+    const when = dateObj(item).getTime();
+    const key = `reminder-${item.title}-${item.date}`;
+    if (when > now && !localStorage.getItem(key)) {
+      const delay = when - now;
+      if (delay < 2147483647) setTimeout(() => { navigator.serviceWorker.ready.then(reg => reg.showNotification(`Resultado: ${item.title}`, { body:`A data prevista é ${formatDate(item)}. Toque para abrir o cronograma.`, icon:'./icon.svg', tag:key })); localStorage.setItem(key,'1'); }, delay);
+    }
+  });
+}
+
+async function enableNotifications(){
+  if (!('Notification' in window)) { toast('Este navegador não oferece notificações'); return; }
+  const permission = await Notification.requestPermission();
+  if (permission === 'granted') { scheduleLocalReminders(); toast('Notificações ativadas neste celular'); }
+  else toast('Permissão de notificações não concedida');
+}
 
 function card(item){
   const s=status(item), isFav=favorites.has(item.title), full=participantLists[item.title] || item.preview, open=expanded.has(item.title), urls=editalLinks[item.title]||{};
@@ -73,6 +97,8 @@ function bind(){
   document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const t=b.dataset.save;favorites.has(t)?favorites.delete(t):favorites.add(t);localStorage.setItem('resultados-favoritos',JSON.stringify([...favorites]));render()});
   document.querySelectorAll('[data-expand]').forEach(b=>b.onclick=()=>{const t=b.dataset.expand;expanded.has(t)?expanded.delete(t):expanded.add(t);render()});
   document.getElementById('savedNav')?.addEventListener('click',()=>{activeFilter='favorites';render()});
-  document.getElementById('notifyBtn')?.addEventListener('click',()=>toast('Lembretes serão adicionados na próxima etapa'));
+  document.getElementById('notifyBtn')?.addEventListener('click',enableNotifications);
+  document.getElementById('installBtn')?.addEventListener('click',async()=>{if(!deferredInstallPrompt){toast('No iPhone, use Compartilhar > Adicionar à Tela de Início');return} deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt=null;});
+  scheduleLocalReminders();
 }
 render();
