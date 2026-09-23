@@ -1,4 +1,4 @@
-const CACHE = 'resultados-2026-v4';
+const CACHE = 'resultados-2026-v5';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './participants.js', './links.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
