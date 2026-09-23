@@ -60,7 +60,7 @@ const expanded = new Set();
 let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredInstallPrompt = event; const button=document.getElementById('installBtn'); if(button) button.hidden=false; });
 window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const button=document.getElementById('installBtn'); if(button) button.hidden=true; });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js?v=5').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js?v=6').catch(() => {});
 
 function scheduleLocalReminders(){
   if (Notification.permission !== 'granted') return;
@@ -106,6 +106,7 @@ function bind(){
 let approvedYear='all';
 let approvedQuery='';
 const approvedOpen=new Set();
+const approvedGroupOpen=new Set();
 
 function approvedCard(item){
   const key=`${item.year}-${approvedData.indexOf(item)}`, open=approvedOpen.has(key);
@@ -117,10 +118,15 @@ function renderApproved(){
   const q=approvedQuery.toLowerCase();
   const filtered=approvedData.filter(item=>(approvedYear==='all'||String(item.year)===approvedYear)&&(!q||`${item.name} ${item.edital} ${item.award}`.toLowerCase().includes(q)));
   const groups=[...new Set(filtered.map(item=>item.edital))].map(edital=>({edital,items:filtered.filter(item=>item.edital===edital)}));
-  const groupedHtml=groups.map(group=>`<section class="approved-group"><div class="approved-group-head"><div><span class="approved-year">${group.items[0].year}</span><h3>${group.edital}</h3></div><strong>${group.items.length} aprovado${group.items.length!==1?'s':''}</strong></div><div class="approved-group-list">${group.items.map(item=>approvedCard(item)).join('')}</div></section>`).join('');
+  const groupedHtml=groups.map(group=>{
+    const groupKey=`${group.items[0].year}-${group.edital}`;
+    const open=approvedGroupOpen.has(groupKey)||Boolean(approvedQuery);
+    return `<section class="approved-group ${open?'open':''}"><button class="approved-group-toggle" data-approved-group="${groupKey}" aria-expanded="${open}"><span><span class="approved-year">${group.items[0].year}</span><strong>${group.edital}</strong><small>${open?'Ocultar aprovados':'Ver aprovados'}</small></span><b>${group.items.length} aprovado${group.items.length!==1?'s':''} ${open?'↑':'↓'}</b></button><div class="approved-group-list" ${open?'':'hidden'}>${group.items.map(item=>approvedCard(item)).join('')}</div></section>`;
+  }).join('');
   panel.innerHTML=`<div class="approved-wrap"><div class="approved-intro"><span class="eyebrow">HISTÓRICO DE RESULTADOS</span><h2>Proponentes aprovados</h2><p>Consulte os aprovados separados por edital, categoria e valor.</p></div><div class="approved-tools"><div class="searchbox">${icon('search')}<input id="approvedSearch" placeholder="Buscar aprovado ou edital" value="${approvedQuery}" /></div><div class="approved-filters"><button class="filter ${approvedYear==='all'?'active':''}" data-approved-year="all">Todos <small>${approvedData.length}</small></button><button class="filter ${approvedYear==='2025'?'active':''}" data-approved-year="2025">2025 <small>${approvedData.filter(x=>x.year===2025).length}</small></button><button class="filter ${approvedYear==='2026'?'active':''}" data-approved-year="2026">2026 <small>${approvedData.filter(x=>x.year===2026).length}</small></button></div></div><div class="approved-count">${filtered.length} aprovado${filtered.length!==1?'s':''} em ${groups.length} edital${groups.length!==1?'is':''}</div><div class="approved-list">${filtered.length?groupedHtml:`<div class="empty"><span>⌕</span><strong>Nenhum aprovado encontrado</strong><p>Tente buscar por outro nome ou edital.</p></div>`}</div></div>`;
   panel.querySelectorAll('[data-approved-year]').forEach(button=>button.onclick=()=>{approvedYear=button.dataset.approvedYear;approvedOpen.clear();renderApproved();bindApproved()});
   panel.querySelectorAll('[data-approved-open]').forEach(button=>button.onclick=()=>{const key=button.dataset.approvedOpen;approvedOpen.has(key)?approvedOpen.delete(key):approvedOpen.add(key);renderApproved();bindApproved()});
+  panel.querySelectorAll('[data-approved-group]').forEach(button=>button.onclick=()=>{const key=button.dataset.approvedGroup;approvedGroupOpen.has(key)?approvedGroupOpen.delete(key):approvedGroupOpen.add(key);renderApproved();bindApproved()});
   const searchInput=panel.querySelector('#approvedSearch'); searchInput?.addEventListener('input',event=>{approvedQuery=event.target.value;renderApproved();bindApproved();const next=panel.querySelector('#approvedSearch');next.focus();next.setSelectionRange(approvedQuery.length,approvedQuery.length)});
 }
 
