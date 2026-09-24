@@ -1,5 +1,5 @@
-const CACHE = 'roda-de-projetos-v9';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './dashboard-ui.js', './participants.js', './links.js', './approved.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'roda-de-projetos-v10';
+const ASSETS = ['./', './index.html', './styles.css?v=9', './app.js?v=9', './dashboard-ui.js?v=9', './participants.js', './links.js', './approved.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
