@@ -1,4 +1,4 @@
-const CACHE = 'roda-de-projetos-v8';
+const CACHE = 'roda-de-projetos-v9';
 const ASSETS = ['./', './index.html', './styles.css', './app.js', './dashboard-ui.js', './participants.js', './links.js', './approved.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {

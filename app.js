@@ -60,7 +60,7 @@ const expanded = new Set();
 let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredInstallPrompt = event; const button=document.getElementById('installBtn'); if(button) button.hidden=false; });
 window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const button=document.getElementById('installBtn'); if(button) button.hidden=true; });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js?v=8').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js?v=9').catch(() => {});
 
 function scheduleLocalReminders(){
   if (Notification.permission !== 'granted') return;
