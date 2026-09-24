@@ -1,11 +1,11 @@
 {
-  "name": "Resultados 2026",
-  "short_name": "Resultados",
-  "description": "Acompanhe datas, editais e resultados de 2026.",
+  "name": "Roda de Projetos",
+  "short_name": "Roda de Projetos",
+  "description": "Central de acompanhamento de datas, editais, participantes e resultados de 2026.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f6f8fa",
-  "theme_color": "#102f4b",
+  "background_color": "#f5f7f8",
+  "theme_color": "#132d46",
   "lang": "pt-BR",
   "icons": [
     { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }

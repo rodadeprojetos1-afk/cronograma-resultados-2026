@@ -1,5 +1,5 @@
-const CACHE = 'resultados-2026-v6';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './participants.js', './links.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'roda-de-projetos-v8';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './dashboard-ui.js', './participants.js', './links.js', './approved.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
